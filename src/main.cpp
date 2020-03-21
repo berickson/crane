@@ -1,6 +1,7 @@
 #include <Arduino.h>
 
 #include "SSD1306Wire.h"
+#include <Servo.h>
 
 
 
@@ -9,8 +10,10 @@ const int oled_address=0x3c;
 const int pin_oled_sda = 4;
 const int pin_oled_scl = 15;
 const int pin_oled_rst = 16;
+const int pin_crane_servo = 2;
 
 SSD1306Wire display(oled_address, pin_oled_sda, pin_oled_scl);
+Servo crane_servo;
 
 
 void setup() {
@@ -27,6 +30,10 @@ void setup() {
   display.setFont(ArialMT_Plain_10);
   display.flipScreenVertically();
 
+  // initialize servo
+  crane_servo.attach(pin_crane_servo);
+
+
   // done
   Serial.println("setup complete");
 }
@@ -35,5 +42,6 @@ void loop() {
   display.clear();
   display.drawString(0, 0, "crane");
   display.display();
+  crane_servo.write(70);
   delay(100);
 }
