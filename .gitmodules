@@ -1,0 +1,3 @@
+[submodule "include/arduino-shared"]
+	path = include/arduino-shared
+	url = git@github.com:berickson/arduino-shared.git
