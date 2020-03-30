@@ -292,6 +292,7 @@ void esp32_common_setup() {
               request->send(200,"text/plain","command failed");
           } else {
               static String output_string;
+              output_string.clear();
               output_string.reserve(500*30);
               StringStream output_stream(output_string);
               CommandEnvironment env(parser, output_stream, output_stream);
