@@ -2,7 +2,6 @@
 #include <Servo.h>
 
 const int pin_crane_servo = 2;
-Servo crane_servo;
 
 bool is_between(float x, float a, float b) {
   return (x >= a && x <= b) || (x>=b && x <= a);
@@ -10,6 +9,7 @@ bool is_between(float x, float a, float b) {
 
 class Crane {
   public:
+    Servo servo;
     float angle_pv = 90;
     float angle_sp = 90;
     float rate = 0;
@@ -17,7 +17,7 @@ class Crane {
     uint32_t last_execute_ms = 0;
 
     void setup() {
-      crane_servo.attach(pin_crane_servo);
+      servo.attach(pin_crane_servo);
     }
 
     void execute() {
@@ -30,10 +30,10 @@ class Crane {
           new_angle = angle_sp;
           moving = false;
         } 
-        angle_pv = constrain(new_angle,-360,360);
+        angle_pv = constrain(new_angle, -360, 360);
 
       }
-      crane_servo.writeMicroseconds(map(angle_pv*100, 0, 18000, 544, 2400));
+      servo.writeMicroseconds(map(angle_pv*100, 0, 18000, 544, 2400));
       last_execute_ms = ms;
     }
 
@@ -42,7 +42,7 @@ class Crane {
       rate = constrain(rate, 1., 1000.);
 
       if(angle != angle_pv) {
-        this->rate = ((angle - angle_pv)>0?1:-1) * rate;
+        this->rate = ((angle - angle_pv)>0 ? 1 : -1) * rate;
         moving = true;
       }
       angle_sp = angle;
