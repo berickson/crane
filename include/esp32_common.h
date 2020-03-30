@@ -1,3 +1,5 @@
+#include <Arduino.h>
+#include "SSD1306Wire.h"
 #include "WiFi.h"
 #include "Preferences.h"
 #include "StringStream.h"
