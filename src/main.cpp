@@ -37,7 +37,7 @@ void setup() {
   display.setFont(ArialMT_Plain_10);
   display.flipScreenVertically();
   */
- 
+
   // initialize servo
   crane_servo.attach(pin_crane_servo);
 
@@ -55,24 +55,26 @@ void loop() {
   const int max_servo_angle = 117;
   const int min_servo_angle = 20;
 
-
+/*
   while(bluetooth.available()) {
     Serial.write(bluetooth.read());
   }
   if(servo_angle < min_servo_angle) {
     servo_angle = min_servo_angle;
     servo_increment = fabs(base_servo_increment);
-    delay(5000);
+    // delay(5000);
   }
   if(servo_angle > max_servo_angle) {
     servo_angle = max_servo_angle;
     servo_increment = -100*fabs(base_servo_increment);
-    delay(5000);
+    // delay(5000);
 
   }
+*/
   display.clear();
   display.drawString(0, 0, "crane");
   display.drawString(0, 10, String(servo_angle,2));
+  display.drawString(0, 30, WiFi.localIP().toString());
   display.display();
   servo_angle += servo_increment;
   crane_servo.write(servo_angle);

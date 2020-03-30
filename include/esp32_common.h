@@ -1,5 +1,6 @@
 #include "WiFi.h"
 #include "Preferences.h"
+#include "StringStream.h"
 
 /*
 lib_deps=
@@ -215,12 +216,14 @@ void cmd_set_wifi_config(CommandEnvironment & env) {
   preferences.putString("password", password);
   preferences.end();
   wifi_task.set_connection_info(ssid, password);
+  preferences.begin("main",true);
   env.cout.print("ssid set to \"");
   env.cout.print(preferences.getString("ssid"));
   env.cout.print("\", password set to \"");
   env.cout.print(preferences.getString("password"));
   env.cout.print("\"");
   env.cout.println();
+  preferences.end();
 }
 
 
@@ -245,8 +248,18 @@ Command * get_command_by_name(const char * command_name) {
 
 void esp32_common_setup() {
   Serial.begin(921600);
+  if(!SPIFFS.begin()){
+    Serial.println("SPIFFS.begin Failed");
+    return;
+  }
+  Serial.println("SPIFFS started");
+  preferences.begin("main", true);
+  wifi_task.set_connection_info(preferences.getString("ssid",""), preferences.getString("password",""));
+  wifi_task.set_enable(preferences.getBool("enable_wifi", true));
+  preferences.end();
 
   // prepare oled display
+  pinMode(pin_oled_rst, OUTPUT);
   digitalWrite(pin_oled_rst, LOW);
   delay(10);
   digitalWrite(pin_oled_rst, HIGH);
@@ -255,9 +268,56 @@ void esp32_common_setup() {
 
   commands.reserve(50);
   commands.emplace_back(Command{"help", cmd_help, "displays list of available commands"});
+  commands.emplace_back(Command{"set_wifi_config", cmd_set_wifi_config, "{ssid} {password}"});
+//  commands.emplace_back(Command{"set_enable_wifi", cmd_set_enable_wifi});
+
+   server.on(
+    "/command",
+    HTTP_POST,
+    // request
+    [](AsyncWebServerRequest * request){
+      Serial.println("got a request");
+      Serial.println(request->contentLength());
+
+      auto params=request->params();
+      for(int i=0;i<params;i++){
+        AsyncWebParameter* p = request->getParam(i);
+        if(p->isPost() && p->name() == "body") {
+          CmdParser parser;
+          String body = p->value();
+
+          parser.parseCmd((char *)body.c_str());
+          auto command = get_command_by_name(parser.getCommand());
+          if(command == nullptr) {
+              request->send(200,"text/plain","command failed");
+          } else {
+              static String output_string;
+              output_string.reserve(500*30);
+              StringStream output_stream(output_string);
+              CommandEnvironment env(parser, output_stream, output_stream);
+              command->execute(env);
+              if(env.ok) {
+                request->send(200,"text/plain", output_string);
+              } else {
+                request->send(200,"text/plain","command failed");
+              }
+          }
+        }
+        request->send(400,"text/plain","no post body sent");
+      }
+    }
+    );
+  
+
 }
 
 void esp32_common_loop() {
+  static uint32_t last_loop_ms = 0;
+  uint32_t loop_ms = millis();
+
+  if(every_n_ms(loop_ms, last_loop_ms, 1)) {
+    wifi_task.execute();
+  }
   static LineReader line_reader;
   static String last_bluetooth_line;
   auto & serial = Serial;
@@ -276,4 +336,6 @@ void esp32_common_loop() {
     }
     last_bluetooth_line = line_reader.line;
   }
+
+  last_loop_ms = loop_ms;
 }
