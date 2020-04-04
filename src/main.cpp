@@ -99,6 +99,7 @@ void loop() {
     display.clear();
     display.drawString(0, 0, "crane");
     display.drawString(0, 10, String(crane.angle_pv,2));
+    display.drawString(0, 20, String("on: "+String(loop_ms/1000)+"s"));
     display.drawString(0, 30, WiFi.localIP().toString());
     display.display();
   }
