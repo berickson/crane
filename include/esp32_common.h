@@ -318,7 +318,9 @@ void esp32_common_loop() {
   static uint32_t last_loop_ms = 0;
   uint32_t loop_ms = millis();
 
-  if(every_n_ms(loop_ms, last_loop_ms, 1)) {
+  // note: was 1ms before for wifi, but would cause crash
+  //       10ms seems to work better
+  if(every_n_ms(loop_ms, last_loop_ms, 10)) {
     wifi_task.execute();
   }
   static LineReader line_reader;
