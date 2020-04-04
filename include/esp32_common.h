@@ -93,22 +93,14 @@ public:
 };
 
 const int wifi_port = 80;
-//const int wifi_max_clients = 1;
 AsyncWebServer server(wifi_port);
 
 class WifiTask {
 public:
-  WiFiClient client;
   unsigned long connect_start_ms = 0;
   unsigned long last_execute_ms = 0;
-  unsigned long last_client_activity_ms = 0;
   String ssid;
   String password;
-
-  String method="";  // GET, PUT, ETC.
-  String path="";    // URI
-  String version=""; // HTTP Version
-
 
   bool enabled=false;
   bool trace = false;
@@ -118,9 +110,7 @@ public:
     status_disabled,
     status_not_connected,
     status_connecting,
-    status_awaiting_client,
-    status_awaiting_command,
-    status_awaiting_header
+    status_connected
   } current_state = status_disabled;
 
   void set_enable(bool enable_wifi) {
@@ -154,7 +144,6 @@ public:
     auto ms = millis();
     auto wifi_status = WiFi.status();
 
-
     switch (current_state) {
       case status_disabled:
         break;
@@ -176,12 +165,9 @@ public:
         }
         if (wifi_status == WL_CONNECTED) {
           server.begin();
-          current_state = status_awaiting_client;
+          current_state = status_connected;
           if(trace) Serial.print("wifi connected, web server started");
         } else {
-          // if(every_n_ms(last_execute_ms, ms, 1000)) {
-          //   Serial.print(wifi_status);
-          // }
           if(ms - connect_start_ms > 5000) {
             if(trace) Serial.print("couldn't connect, trying again");
             WiFi.disconnect();
@@ -191,15 +177,14 @@ public:
         }
         break;
 
-      case status_awaiting_client:
+      case status_connected:
         if (wifi_status != WL_CONNECTED) {
-          if(trace) Serial.print("wifi connected, web server stopped");
+          if(trace) Serial.print("wifi disconnected, web server stopped");
           current_state = status_not_connected;
           server.end();
-          break;
+          WiFi.disconnect();
         }
         break;
-
 
       default:
         Serial.println("invalid sate in WifiTask");
@@ -278,8 +263,8 @@ void esp32_common_setup() {
     HTTP_POST,
     // request
     [](AsyncWebServerRequest * request){
-      Serial.println("got a request");
-      Serial.println(request->contentLength());
+      //Serial.println("got a request");
+      //Serial.println(request->contentLength());
 
       auto params=request->params();
       for(int i=0;i<params;i++){
@@ -293,7 +278,7 @@ void esp32_common_setup() {
           if(command == nullptr) {
               request->send(200,"text/plain","command failed");
           } else {
-              static String output_string;
+              String output_string;
               output_string.clear();
               output_string.reserve(500*30);
               StringStream output_stream(output_string);
@@ -301,8 +286,10 @@ void esp32_common_setup() {
               command->execute(env);
               if(env.ok) {
                 request->send(200,"text/plain", output_string);
+                return;
               } else {
                 request->send(200,"text/plain","command failed");
+                return;
               }
           }
         }
@@ -318,9 +305,7 @@ void esp32_common_loop() {
   static uint32_t last_loop_ms = 0;
   uint32_t loop_ms = millis();
 
-  // note: was 1ms before for wifi, but would cause crash
-  //       10ms seems to work better
-  if(every_n_ms(loop_ms, last_loop_ms, 10)) {
+  if(every_n_ms(loop_ms, last_loop_ms, 100)) {
     wifi_task.execute();
   }
   static LineReader line_reader;
