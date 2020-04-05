@@ -39,7 +39,7 @@ class Crane {
 
     void go_to_angle(float angle, float rate) {
       angle = constrain(angle, -360., 360.);
-      rate = constrain(rate, 1., 1000.);
+      rate = constrain(rate, 0.001, 1000.);
 
       if(angle != angle_pv) {
         this->rate = ((angle - angle_pv)>0 ? 1 : -1) * rate;
